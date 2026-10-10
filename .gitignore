@@ -1,0 +1,24 @@
+# 依赖目录
+node_modules/
+.pnp
+.pnp.js
+
+# 构建与打包输出（release 包含 170MB+ Electron 运行时，超出 GitHub 100MB 单文件限制）
+dist/
+dist-electron/
+release/
+
+# 日志文件
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# 编辑器与系统临时文件
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 本地环境变量
+.env
+.env.local
