@@ -144,3 +144,8 @@
 - **根因**：XAML 中的 `TextBox` 在绑定初始文本（`Text="{Binding ...}"`）时，会在 `InitializeComponent()` 执行期间立即触发 `TextChanged` 事件。若防抖计时器（`_noteSaveDebounceTimer`）在 `InitializeComponent()` 之后才实例化，回调执行时计时器为 `null`。
 - **解法**：所有非 UI 依赖的字段、防抖定时器等，必须严格放置在 `InitializeComponent()` 之前完成实例化。
 
+### 15. Windows 批处理文件 LF 换行符与 cmd.exe 解析崩溃
+- **现象**：双击 `.bat` 脚本无反应或秒闪退，命令行报错 `'neq' is not recognized as an internal or external command`。
+- **根因**：Windows `cmd.exe` 解析器强依赖 Windows 原生回车换行符 `CRLF`（`\r\n`）。若脚本由跨平台工具以 Unix `LF`（`\n`）保存，`cmd.exe` 会将多行 `if (...) (` 语句断句错位，将 `neq` 误判为独立命令。同时若缺少 `chcp 65001 >nul`，中文也会触发控制台乱码。
+- **解法**：批处理脚本必须强制采用 UTF-8 无 BOM 且使用 `CRLF`（`\r\n`）保存；首行强制加入 `chcp 65001 >nul` 与 `cd /d "%~dp0."` 锁定当前脚本工作目录。
+

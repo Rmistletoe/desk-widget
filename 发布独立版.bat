@@ -1,16 +1,19 @@
 @echo off
+chcp 65001 >nul
+cd /d "%~dp0."
+
 echo ========================================================
 echo  正在打包发布原生绿色单文件版 DeskWidget.exe...
 echo ========================================================
 
-taskkill /f /im DeskWidget.exe 2>nul
+taskkill /f /im DeskWidget.exe >nul 2>nul
 
 dotnet publish src\DeskWidget\DeskWidget.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o release\portable
 
 if %errorlevel% neq 0 (
     echo 发布失败！
     pause
-    exit /b %errorlevel%
+    exit /b 1
 )
 
 echo.

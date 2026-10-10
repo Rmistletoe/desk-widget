@@ -17,6 +17,7 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        App.Log("MainWindow ctor start");
         // 关键：必须在 InitializeComponent 之前先构造定时器，防止 XAML 初次绑定 TextChanged 时发生空引用
         _noteSaveDebounceTimer = new DispatcherTimer
         {
@@ -28,23 +29,30 @@ public partial class MainWindow : Window
             ViewModel?.SaveAllData();
         };
 
+        App.Log("Calling InitializeComponent...");
         InitializeComponent();
+        App.Log("InitializeComponent completed");
 
         Loaded += OnWindowLoaded;
         Closing += OnWindowClosing;
 
         InitializeTray();
+        App.Log("InitializeTray completed");
     }
 
     private void OnWindowLoaded(object sender, RoutedEventArgs e)
     {
+        App.Log("OnWindowLoaded triggered");
         // 定位在主显示屏右上角 (贴边留出 30px 空隙)
         var workArea = SystemParameters.WorkArea;
         Left = workArea.Right - Width - 30;
         Top = 80;
 
+        App.Log($"Window positioned at Left={Left}, Top={Top}, Visibility={Visibility}");
+
         // 注册全局老板键 Alt+Shift+H
         _hotkeyService = new HotkeyService(this, ToggleVisibility);
+        App.Log("Hotkey registered");
     }
 
     private void InitializeTray()
