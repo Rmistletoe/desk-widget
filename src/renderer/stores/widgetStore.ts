@@ -49,13 +49,16 @@ function loadFromStorage<T>(key: string, fallback: T): T {
   }
 }
 
+// 获取从主进程同步注入的外部独立配置文件内容
+const electronState = (window as any).electronAPI?.initialState;
+
 export const widgetStore = reactive({
   activeTab: 'todo' as ActiveTab,
   isCapsuleMode: false,
   showSettings: false,
-  todos: loadFromStorage<TodoItem[]>(STORAGE_KEYS.TODOS, defaultTodos),
-  note: loadFromStorage<StickyNote>(STORAGE_KEYS.NOTE, defaultNote),
-  config: loadFromStorage<AppConfig>(STORAGE_KEYS.CONFIG, defaultConfig),
+  todos: (electronState?.data?.todos as TodoItem[]) || loadFromStorage<TodoItem[]>(STORAGE_KEYS.TODOS, defaultTodos),
+  note: (electronState?.data?.note as StickyNote) || loadFromStorage<StickyNote>(STORAGE_KEYS.NOTE, defaultNote),
+  config: (electronState?.config as AppConfig) || loadFromStorage<AppConfig>(STORAGE_KEYS.CONFIG, defaultConfig),
 
   addTodo(text: string, priority: 'normal' | 'important' = 'normal') {
     if (!text.trim()) return;
@@ -97,21 +100,28 @@ export const widgetStore = reactive({
   },
 });
 
-// 监听变动并防抖持久化
-watch(
-  () => widgetStore.todos,
-  (val) => localStorage.setItem(STORAGE_KEYS.TODOS, JSON.stringify(val)),
-  { deep: true }
-);
-
-watch(
-  () => widgetStore.note,
-  (val) => localStorage.setItem(STORAGE_KEYS.NOTE, JSON.stringify(val)),
-  { deep: true }
-);
-
+// 监听配置变动：同时持久化到 localStorage 与外部独立 config.json
 watch(
   () => widgetStore.config,
-  (val) => localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(val)),
+  (val) => {
+    const plain = JSON.parse(JSON.stringify(val));
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(plain));
+    (window as any).electronAPI?.saveConfig(plain);
+  },
+  { deep: true }
+);
+
+// 监听待办与便签变动：同时持久化到 localStorage 与外部独立 data.json
+watch(
+  () => [widgetStore.todos, widgetStore.note],
+  () => {
+    const data = {
+      todos: JSON.parse(JSON.stringify(widgetStore.todos)),
+      note: JSON.parse(JSON.stringify(widgetStore.note)),
+    };
+    localStorage.setItem(STORAGE_KEYS.TODOS, JSON.stringify(data.todos));
+    localStorage.setItem(STORAGE_KEYS.NOTE, JSON.stringify(data.note));
+    (window as any).electronAPI?.saveData(data);
+  },
   { deep: true }
 );

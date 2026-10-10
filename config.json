@@ -1,0 +1,8 @@
+{
+  "workStartTime": "09:00",
+  "workEndTime": "18:00",
+  "payday": 15,
+  "alwaysOnTop": true,
+  "opacity": 0.95,
+  "customMessage": "今天也要保持好心情，下班一起吃好吃的～"
+}
