@@ -6,7 +6,7 @@
     <!-- 完整便签展开面板 -->
     <div
       v-else
-      class="note-container w-full h-full rounded-2xl shadow-xl border border-black/10 flex flex-col overflow-hidden backdrop-blur-md transition-all duration-300 relative"
+      class="note-container w-full h-full rounded-2xl shadow-xl border border-black/10 flex flex-col overflow-hidden transition-all duration-300 relative"
       :style="{ backgroundColor: currentBgHex, opacity: widgetStore.config.opacity }"
     >
       <!-- 顶部状态栏 -->
@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { widgetStore } from './stores/widgetStore';
 import HeaderStatus from './components/HeaderStatus.vue';
 import TabNav from './components/TabNav.vue';
@@ -44,6 +44,10 @@ import StickyNoteView from './components/StickyNoteView.vue';
 import FooterBar from './components/FooterBar.vue';
 import CapsuleView from './components/CapsuleView.vue';
 import SettingsModal from './components/SettingsModal.vue';
+
+onMounted(() => {
+  console.log(`[Renderer Benchmark] App mounted at ${performance.now().toFixed(1)}ms`);
+});
 
 const currentBgHex = computed(() => {
   const map: Record<string, string> = {

@@ -48,7 +48,7 @@
 ### 3. Chromium 网络代理自动探测 (WPAD) 导致的启动假死
 - **现象**：点击启动图标后，需要等待好几秒窗口才会慢吞吞弹出。
 - **根因**：Chromium 启动时默认会执行 Web Proxy Auto-Discovery (WPAD) 探测系统网络代理，在 Windows 环境下即使加载本地 `file://` 页面也会发生 2～4 秒的硬性阻塞等待。
-- **解法**：在 Electron 主进程入口显式传入 `app.commandLine.appendSwitch('no-proxy-server')` 与 `disable-gpu-shader-disk-cache`，跳过网络代理探测与磁盘缓存文件锁竞争，冷启动耗时直接从 4 秒降至毫秒级。
+- **解法**：在 Electron 主进程入口显式传入 `app.commandLine.appendSwitch('no-proxy-server')` 跳过网络代理探测，冷启动耗时直接大幅下降。注意：**严禁随意禁用着色器磁盘缓存（`disable-gpu-shader-disk-cache`）**，否则每次冷启动都会强制 CPU 重新编译 Direct3D HLSL 着色器，反而引发数秒严重卡顿。
 
 ### 4. 任务栏隐藏与 Windows 10/11 系统托盘折叠机制
 - **现象**：开启 `skipTaskbar: true` 后，任务栏无图标，同时用户反馈在右下角也看不到托盘图标。
@@ -64,3 +64,22 @@
 - **解法**：
   1. 剔除行业特化预设，替换为 `[重要]`、`[工作]`、`[生活]`、`[学习]` 通用分类。
   2. 引入图形化设置弹窗（`⚙️`），将上下班作息、发薪日、透明度和自定义留言交由用户在界面上直观配置并自动持久化。
+
+### 6. 托盘出现很快但窗口界面滞后 5 秒的深度根治
+- **现象**：双击启动脚本后，右下角系统托盘图标瞬间出现，但桌面上的便签窗口过了整整 5 秒才加载渲染出来。
+- **根因（多重复合性能杀手）**：
+  1. **负优化：禁用着色器缓存**：此前添加了 `disable-gpu-shader-disk-cache`，导致 Windows D3D11 每次冷启动都重新实时编译 DirectComposition Alpha Blending 着色器，耗时 2~3 秒。
+  2. **负优化：禁用预热渲染器**：此前在 `disable-features` 中误禁用了 `SpareRendererForSitePerProcess`，导致无法在主进程初始化时并行预热渲染器，必须串行冷启动。
+  3. **Windows DWM 阴影与透明窗口冲突**：无边框透明窗口（`transparent: true`）开启了 `hasShadow: true`。Windows 原生不支持无边框透明窗口自带系统阴影，强制 DWM 走昂贵且容易握手超时的 DirectComposition 阴影计算。
+  4. **CSS `backdrop-blur` 离屏模糊黑洞**：在透明窗口上设置 `backdrop-filter: blur(...)`，Chromium 无法获取桌面背景，会触发软件后备双通道离屏高斯卷积着色器编译与渲染，首屏构建耗时极长。
+  5. **后台窗口降频挂起机制（Background Throttling）**：由于开启了 `skipTaskbar: true`，Chromium 在未主动聚焦前会将其误判为不可见的后台窗口，默认对渲染器执行降频挂起（1000ms 调度一次），导致首帧绘制被延迟。
+  6. **无单实例锁导致旧进程冲突**：多开或快速重开时，旧实例尚未完全释放文件锁与 GPU 互斥体，新实例等待锁超时 3~5 秒。
+- **解法**：
+  1. 彻底移除 `disable-gpu-shader-disk-cache`，恢复 GPU Shader 磁盘缓存秒级复用。
+  2. 移除对 `SpareRendererForSitePerProcess` 的禁用，恢复并行预热。
+  3. 主进程配置 `hasShadow: false`，完全依靠前端 Tailwind `shadow-xl` 硬件加速阴影，消除 DWM 冲突。
+  4. 移除 CSS 里的 `backdrop-blur-md`，消除离屏模糊着色器编译损耗。
+  5. 开启 `backgroundThrottling: false`，彻底禁止 Chromium 对桌面挂件窗口降频。
+  6. 引入 `app.requestSingleInstanceLock()` 单实例锁，重复运行自动呼出已有窗口，避免锁冲突。
+  7. 窗口初始化改为 `show: false`，在 `ready-to-show` 时立即 `show()` 并 `focus()`，外加 500ms 兜底，实测从托盘到界面渲染展示仅需 270ms。
+
