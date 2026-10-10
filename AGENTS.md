@@ -117,7 +117,30 @@
   1. 严格禁止在 Vue 单例 Store 的方法中使用脆弱的 `this`，全部改为显式闭包变量引用（`widgetStore.config`）。
   2. 所有 UI 关键事件回调强制添加 `try...catch...finally`，确保即使保存层偶发异常，UI 状态依然能平滑重置并关闭，绝不阻断用户界面。
   3. 全局注册 `F12` 开发者工具呼出快捷键，彻底告别盲人摸象。
+### 10. Wpf.Ui 4.x 资源字典命名空间与路径变迁
+- **现象**：在 `App.xaml` 中按照旧版文档引入 `<ui:XamlControlsResources />` 时，编译报错找不到该类型，或者找不到主题资源。
+- **根因**：Wpf.Ui 从 4.0 起进行了架构大重构，废弃了旧版自定义 Resources 标签，统一回归标准的 `ResourceDictionary` 语法。
+- **解法**：在 `App.xaml` 的 `MergedDictionaries` 中，显式通过 Pack URI 引入：
+  - `pack://application:,,,/Wpf.Ui;component/Resources/Theme/Light.xaml`
+  - `pack://application:,,,/Wpf.Ui;component/Resources/Wpf.Ui.xaml`
 
+### 11. WPF 与 WinForms 启用后的全局命名空间冲突
+- **现象**：项目为接入高可靠原生托盘开启 `<UseWindowsForms>true</UseWindowsForms>` 后，编译报错 `Button`、`Application`、`KeyEventArgs`、`Color` 存在二义性。
+- **根因**：`System.Windows.Forms` 与 `System.Windows`（WPF）在同一个编译上下文内引入了同名类型。
+- **解法**：在 XAML 后台代码与 Service 中显式使用完全限定命名空间：如 `System.Windows.Input.KeyEventArgs`、`System.Windows.Controls.Button`、`System.Windows.Media.Color.FromRgb(...)`，WinForms 仅用于 `System.Windows.Forms.NotifyIcon`。
 
+### 12. TextBox 缺少 LineHeight 属性与 XAML 解析中断
+- **现象**：在 便签的 `TextBox` 上设置 `LineHeight="24"`，编译直接报错并导致窗体无法解析。
+- **根因**：WPF 中 `TextBox` 继承自 `TextBoxBase`，并不支持 `LineHeight` 属性（仅 `TextBlock` 具备）。
+- **解法**：便签多行输入框移除 `LineHeight`，通过设置 `FontSize`、`FontFamily` 与 `Padding` 实现优雅的行间排版。
 
+### 13. Border 缺少 MouseDoubleClick 事件与折叠交互
+- **现象**：在顶部胶囊的 `Border` 上绑定 `MouseDoubleClick="Border_MouseDoubleClick"` 报错找不到该事件。
+- **根因**：`Border` 继承自 `FrameworkElement`，未封装双击事件（`Control` 类才具备）。
+- **解法**：监听 `MouseLeftButtonDown` 事件，判断 `if (e.ClickCount == 2)` 触发双击折叠与展开，单次点击则继续调用 `DragMove()` 实现窗口平滑拖拽。
+
+### 14. 初始化时序空指针陷阱与 TextChanged 提前触发
+- **现象**：窗口在启动时直接抛出 `NullReferenceException` 闪退崩溃。
+- **根因**：XAML 中的 `TextBox` 在绑定初始文本（`Text="{Binding ...}"`）时，会在 `InitializeComponent()` 执行期间立即触发 `TextChanged` 事件。若防抖计时器（`_noteSaveDebounceTimer`）在 `InitializeComponent()` 之后才实例化，回调执行时计时器为 `null`。
+- **解法**：所有非 UI 依赖的字段、防抖定时器等，必须严格放置在 `InitializeComponent()` 之前完成实例化。
 
