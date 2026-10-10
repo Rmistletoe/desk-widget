@@ -29,11 +29,13 @@ let tray: Tray | null = null;
 // 独立配置文件与数据持久化逻辑
 // ========================
 function getConfigDir(): string {
-  // 打包生产环境保存在 exe 同级目录，开发环境保存在工程根目录
-  if (app.isPackaged) {
-    return path.dirname(process.execPath);
+  const execDir = path.dirname(process.execPath);
+  // 若在本地开发环境下由 node_modules/electron 启动，使用工程根目录
+  if (execDir.toLowerCase().includes('node_modules')) {
+    return process.cwd();
   }
-  return process.cwd();
+  // 绿色便携版与独立分发版：无论工作目录为何，一律精准落盘在 exe 物理同级目录
+  return execDir;
 }
 
 const DEFAULT_CONFIG = {

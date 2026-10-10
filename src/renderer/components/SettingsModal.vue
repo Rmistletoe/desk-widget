@@ -118,7 +118,7 @@
       <div class="p-2.5 bg-gray-50/90 border-t border-black/5 flex justify-end">
         <button
           class="px-4 py-1 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-medium text-xs transition-colors shadow-sm"
-          @click="widgetStore.showSettings = false"
+          @click="handleSave"
         >
           保存并关闭
         </button>
@@ -136,5 +136,10 @@ function handleAlwaysOnTopChange() {
     // @ts-ignore
     window.electronAPI.setAlwaysOnTop(widgetStore.config.alwaysOnTop);
   }
+}
+
+function handleSave() {
+  widgetStore.updateConfig(widgetStore.config);
+  widgetStore.showSettings = false;
 }
 </script>

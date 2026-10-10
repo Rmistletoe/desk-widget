@@ -92,4 +92,14 @@
      - 运行阶段：在界面设置窗口（`⚙️`）调整参数，或编辑待办/便签时，前端 Store 响应式深度监听，自动实时同步写回本地外部 `config.json` 与 `data.json`。
   3. **重新打包零影响**：后续无论怎样重新构建覆盖程序二进制文件，只要保留外部的 `config.json`，用户专属配置永不丢失。
 
+### 8. Electron 未打 asar 包时 app.isPackaged 判定陷阱与表单未显式落盘
+- **现象**：在设置弹窗中修改发薪日、作息时间后点击“保存并关闭”，界面或重启后依然显示默认 15 号与默认作息，修改配置失效。
+- **根因**：
+  1. **`app.isPackaged` 判定陷阱**：绿色免安装版本使用的是解压的 `resources/app` 文件夹（未封装为单一 `app.asar`）。在 Electron 底层规范中，只要没有使用 asar，`app.isPackaged` 永远返回 `false`！这导致 `getConfigDir` 错误走了 `process.cwd()` 分支。当从批处理、快捷方式或不同目录拉起进程时，`process.cwd()` 发生错位，无法定位到 exe 物理同级目录的 `config.json`。
+  2. **设置弹窗“有名无实”**：`SettingsModal.vue` 的【保存并关闭】按钮仅执行了隐藏弹窗，缺乏显式调用 Store 保存方法的动作；依赖的被动 watch 在嵌套对象修改时未触发落盘。
+- **解法**：
+  1. 抛弃 `app.isPackaged` 依赖，改用 `path.dirname(process.execPath)` 并排除 `node_modules`，无论是否打包或从何处拉起，一律精准落盘在 exe 物理所在目录。
+  2. 在 Store 中声明显式的 `updateConfig(newConfig)` 方法，弹窗点击【保存并关闭】时显式触发落盘与主进程 IPC，确保 100% 写入。
+
+
 

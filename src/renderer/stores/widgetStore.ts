@@ -98,15 +98,24 @@ export const widgetStore = reactive({
   toggleSettings() {
     this.showSettings = !this.showSettings;
   },
+
+  updateConfig(newConfig: Partial<AppConfig>) {
+    Object.assign(this.config, newConfig);
+    const plain = JSON.parse(JSON.stringify(this.config));
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(plain));
+    if ((window as any).electronAPI?.saveConfig) {
+      (window as any).electronAPI.saveConfig(plain);
+    }
+  },
 });
 
 // 监听配置变动：同时持久化到 localStorage 与外部独立 config.json
 watch(
-  () => widgetStore.config,
+  widgetStore.config,
   (val) => {
     const plain = JSON.parse(JSON.stringify(val));
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(plain));
-    (window as any).electronAPI?.saveConfig(plain);
+    (window as any).electronAPI?.saveConfig?.(plain);
   },
   { deep: true }
 );
