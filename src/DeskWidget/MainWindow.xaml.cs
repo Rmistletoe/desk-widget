@@ -57,11 +57,27 @@ public partial class MainWindow : Window
 
     private void InitializeTray()
     {
+        Icon? appIcon = null;
+        try
+        {
+            var iconUri = new Uri("pack://application:,,,/DeskWidget;component/Assets/app.ico");
+            var streamInfo = System.Windows.Application.GetResourceStream(iconUri);
+            if (streamInfo != null)
+            {
+                using var stream = streamInfo.Stream;
+                appIcon = new Icon(stream);
+            }
+        }
+        catch (Exception ex)
+        {
+            App.Log("Failed to load tray icon: " + ex.Message);
+        }
+
         _notifyIcon = new Forms.NotifyIcon
         {
             Text = "桌面便签挂件",
             Visible = true,
-            Icon = SystemIcons.Application
+            Icon = appIcon ?? SystemIcons.Application
         };
 
         // 单击托盘图标切换显隐
