@@ -139,7 +139,12 @@ function handleAlwaysOnTopChange() {
 }
 
 function handleSave() {
-  widgetStore.updateConfig(widgetStore.config);
-  widgetStore.showSettings = false;
+  try {
+    widgetStore.updateConfig(widgetStore.config);
+  } catch (err) {
+    console.error('Failed to update config:', err);
+  } finally {
+    widgetStore.showSettings = false;
+  }
 }
 </script>

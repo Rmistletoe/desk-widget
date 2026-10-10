@@ -282,6 +282,17 @@ app.whenReady().then(() => {
     toggleWindowVisible();
   });
 
+  // 开发者调试工具快捷键 F12
+  globalShortcut.register('F12', () => {
+    if (mainWindow) {
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools();
+      } else {
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
+      }
+    }
+  });
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

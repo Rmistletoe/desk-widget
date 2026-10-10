@@ -100,8 +100,8 @@ export const widgetStore = reactive({
   },
 
   updateConfig(newConfig: Partial<AppConfig>) {
-    Object.assign(this.config, newConfig);
-    const plain = JSON.parse(JSON.stringify(this.config));
+    Object.assign(widgetStore.config, newConfig);
+    const plain = JSON.parse(JSON.stringify(widgetStore.config));
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(plain));
     if ((window as any).electronAPI?.saveConfig) {
       (window as any).electronAPI.saveConfig(plain);

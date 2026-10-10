@@ -101,5 +101,16 @@
   1. 抛弃 `app.isPackaged` 依赖，改用 `path.dirname(process.execPath)` 并排除 `node_modules`，无论是否打包或从何处拉起，一律精准落盘在 exe 物理所在目录。
   2. 在 Store 中声明显式的 `updateConfig(newConfig)` 方法，弹窗点击【保存并关闭】时显式触发落盘与主进程 IPC，确保 100% 写入。
 
+### 9. 生产打包代码混淆下的 this 指向丢失与事件处理无 try-catch 假死
+- **现象**：在设置弹窗中修改完配置后，点击底部的【保存并关闭】按钮，界面毫无反应，弹窗关不掉，仿佛死机卡住。
+- **根因**：
+  1. 在 `widgetStore` 的 `updateConfig` 方法内，使用了 `Object.assign(this.config, ...)`。在 Rollup/Vite 生产压缩混淆下，`this` 丢失变为 `undefined`，触发了 `TypeError: Cannot read properties of undefined`。
+  2. 组件事件函数 `handleSave` 没有包裹 `try...catch...finally`，一旦首行抛错，整个函数瞬间中断退出，导致下一行 `widgetStore.showSettings = false` 根本无法执行，在 UI 上表现为“按钮完全无反应”。
+- **解法**：
+  1. 严格禁止在 Vue 单例 Store 的方法中使用脆弱的 `this`，全部改为显式闭包变量引用（`widgetStore.config`）。
+  2. 所有 UI 关键事件回调强制添加 `try...catch...finally`，确保即使保存层偶发异常，UI 状态依然能平滑重置并关闭，绝不阻断用户界面。
+  3. 全局注册 `F12` 开发者工具呼出快捷键，彻底告别盲人摸象。
+
+
 
 
